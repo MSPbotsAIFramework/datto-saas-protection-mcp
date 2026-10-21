@@ -78,7 +78,11 @@ def _clean(value: str | None) -> str | None:
 
 
 class GatewayCredentialsMiddleware:
-    """Reads the Datto key pair (and optional region) on /mcp requests; 401 when a key is missing."""
+    """Reads the Datto key pair (and optional region) on /mcp requests; 401 when a key is missing.
+
+    An unknown region does not block the request (tools/list must work with any
+    values); tools report it instead.
+    """
 
     def __init__(self, app: ASGIApp):
         self.app = app
@@ -104,15 +108,12 @@ class GatewayCredentialsMiddleware:
             return
 
         region = (_clean(request.headers.get(HEADER_REGION)) or "us").lower()
+        header_error = None
         if region not in REGIONS:
-            await JSONResponse(
-                {"error": "Invalid region", "message": f"{HEADER_REGION} must be one of: {', '.join(REGIONS)}"},
-                status_code=400,
-            )(scope, receive, send)
-            return
+            header_error = f"{HEADER_REGION} must be one of: {', '.join(REGIONS)}"
 
         request_id = (request.headers.get("x-request-id") or "").strip()[:64] or uuid.uuid4().hex[:12]
-        creds_token = _credentials_var.set(DattoCredentials(public_key, private_key))
+        creds_token = _credentials_var.set(DattoCredentials(public_key, private_key, header_error))
         rid_token = request_id_var.set(request_id)
         try:
             await self.app(scope, receive, send)

@@ -85,6 +85,9 @@ class DattoError(Exception):
 class DattoCredentials:
     public_key: str
     private_key: str
+    # Set when a header value is malformed: tools then return invalid_argument
+    # instead of calling Datto, while tools/list still works.
+    header_error: str | None = None
 
     def __repr__(self) -> str:  # never leak the keys into logs or tracebacks
         return "DattoCredentials(keys=<redacted>)"
@@ -101,6 +104,7 @@ class DattoClient:
     def __init__(self, credentials: DattoCredentials, http_client: httpx.AsyncClient | None = None):
         self._credentials = credentials
         self._http = http_client
+        self.header_error = credentials.header_error
         self.base_url = API_BASE_URL
 
     def _headers(self, accept: str) -> dict[str, str]:

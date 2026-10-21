@@ -27,8 +27,9 @@ key pair serves Datto BCDR and SaaS Protection.
 How the keys are sent to Datto: every call goes to `https://api.datto.com/v1/saas/...` with
 HTTP Basic authentication (public key as user name, secret key as password).
 
-A request to `/mcp` without both keys gets HTTP 401 naming the missing one; an unknown region
-gets HTTP 400.
+A request to `/mcp` without both keys gets HTTP 401 naming the missing one. An unknown region
+does not block `tools/list`; tool calls then return an `invalid_argument` error naming the
+allowed regions.
 
 ## Tools
 
